@@ -1,3 +1,5 @@
+#!/bin/bash
+
 # Copyright (c) 2019, Plume Design Inc. All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without
@@ -22,12 +24,26 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-UNIT_CFLAGS  := $(filter-out -DTARGET_H=%,$(UNIT_CFLAGS))
-UNIT_CFLAGS  += -DTARGET_H=\"target_template.h\"
-UNIT_CFLAGS  += -I$(OVERRIDE_DIR)/inc
-
-UNIT_SRC_TOP += $(OVERRIDE_DIR)/src/target.c
-UNIT_SRC_TOP += $(OVERRIDE_DIR)/src/radio.c
-
-UNIT_EXPORT_CFLAGS  := $(UNIT_CFLAGS)
-UNIT_EXPORT_LDFLAGS := $(UNIT_LDFLAGS)
+cat << EOF
+[
+    "Open_vSwitch",
+    {
+        "op":"insert",
+        "table":"IP_Interface",
+        "row": {
+            "if_name": "$CONFIG_RDK_LAN_BRIDGE_NAME",
+            "name": "$CONFIG_RDK_LAN_BRIDGE_NAME",
+            "enable": true
+       }
+    },
+    {
+        "op":"insert",
+        "table":"IP_Interface",
+        "row": {
+            "if_name": "$CONFIG_RDK_WAN_BRIDGE_NAME",
+            "name": "$CONFIG_RDK_WAN_BRIDGE_NAME",
+            "enable": true
+       }
+    }
+]
+EOF
