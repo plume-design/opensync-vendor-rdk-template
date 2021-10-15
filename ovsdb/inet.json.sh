@@ -65,6 +65,16 @@ cat << EOF
             "enabled": false,
             "dhcpd": ["map", [["start", "169.254.1.5"], ["stop", "169.254.1.253"]]]
        }
+    },
+    {
+        "op":"insert",
+        "table":"Wifi_Inet_Config",
+        "row": {
+            "if_name": "$CONFIG_RDK_LAN_ETH_IFNAME",
+            "if_type": "eth",
+            "enabled": true,
+            "mac_reporting": true
+       }
     }
 ]
 EOF
