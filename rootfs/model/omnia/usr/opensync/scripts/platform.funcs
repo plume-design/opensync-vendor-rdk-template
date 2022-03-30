@@ -1,0 +1,120 @@
+platform_prereq_check() {
+    # Check to see if prerequisites are met.  Won't start managers if 1 is returned
+    return 0
+}
+
+platform_start() {
+    # Called just before starting managers
+    device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
+    if [ $device_type == "broadband" ]; then
+        /usr/opensync/scripts/br-swap.sh ovs
+        hostapd_cli -i wifi0 disable
+        hostapd_cli -i wifi0 enable
+        hostapd_cli -i wifi1 disable
+        hostapd_cli -i wifi1 enable
+        return 0
+    fi
+
+    touch /etc/device.properties
+
+    # === Start Network interfaces ===
+
+    ovs-vsctl add-br br-wan -- set bridge br-wan other-config:hwaddr=\"$(cat /sys/class/net/eth2/address)\"
+    ifconfig eth2 up
+    ip link add link eth2 name eth2.4 type vlan id 4
+    ifconfig eth2.4 up
+
+    # == LAN ==
+    if [ $device_type == "broadband" ]; then
+        ovs-vsctl add-br brlan0
+    else
+        ovs-vsctl add-br brlan0 -- set bridge brlan0 other-config:hwaddr=\"$(cat /sys/class/net/eth1/address)\"
+    fi
+    ovs-vsctl add-port brlan0 lan0
+    ovs-vsctl add-port brlan0 lan1
+    ovs-vsctl add-port brlan0 lan2
+    ovs-vsctl add-port brlan0 lan3
+    ovs-vsctl add-port brlan0 lan4
+
+    ifconfig eth1 up
+    ifconfig lan0 up
+    ifconfig lan1 up
+    ifconfig lan2 up
+    ifconfig lan3 up
+    ifconfig lan4 up
+    ifconfig brlan0 up
+
+    # == VAPs ==
+
+    # home-ap-24
+    iw dev wlan0 interface add wifi0 type __ap
+    ovs-vsctl add-port brlan0 wifi0
+
+    # home-ap-50
+    iw dev wlan1 interface add wifi1 type __ap
+    ovs-vsctl add-port brlan0 wifi1
+
+    # bhaul-ap-24
+    iw dev wlan0 interface add wifi2 type __ap
+
+    # bhaul-ap-50
+    iw dev wlan1 interface add wifi3 type __ap
+
+    # guest-ap-24
+    iw dev wlan0 interface add wifi4 type __ap
+
+    # guest-ap-50
+    iw dev wlan1 interface add wifi5 type __ap
+
+    # onboard-ap-24
+    iw dev wlan0 interface add wifi6 type __ap
+
+    # onboard-ap-50
+    iw dev wlan1 interface add wifi7 type __ap
+
+    # == STA ==
+
+    # bhaul-sta-24
+    iw dev wlan0 interface add bhaul-sta-24 type managed
+
+    # bhaul-sta-50
+    iw dev wlan1 interface add bhaul-sta-50 type managed
+
+    touch /tmp/hostapd-acl0
+    touch /tmp/hostapd-acl1
+    touch /tmp/hostapd-acl2
+    touch /tmp/hostapd-acl3
+    touch /tmp/hostapd-acl4
+    touch /tmp/hostapd-acl5
+    touch /tmp/hostapd-acl6
+    touch /tmp/hostapd-acl7
+    touch /tmp/hostapd0.psk
+    touch /tmp/hostapd1.psk
+    touch /tmp/bhaul-sta-24.conf
+    touch /tmp/bhaul-sta-50.conf
+
+    wpa_cli -g/var/run/wpa_supplicant-global interface_add bhaul-sta-24 /tmp/bhaul-sta-24.conf nl80211 /var/run/wpa_supplicant
+    wpa_cli -g/var/run/wpa_supplicant-global interface_add bhaul-sta-50 /tmp/bhaul-sta-50.conf nl80211 /var/run/wpa_supplicant
+
+    return 0
+}
+
+platform_stop() {
+    # Called after stopping managers
+    device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
+    if [ $device_type == "broadband" ]; then
+        /usr/opensync/scripts/br-swap.sh native
+
+        hostapd_cli -i wifi0 disable
+        hostapd_cli -i wifi0 enable
+        hostapd_cli -i wifi1 disable
+        hostapd_cli -i wifi1 enable
+
+        # backhaul ap should be disabled when OpenSync is not running
+        hostapd_cli -i wifi2 disable
+        hostapd_cli -i wifi3 disable
+
+        return 0
+    fi
+    return 0
+}

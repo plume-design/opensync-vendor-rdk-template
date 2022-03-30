@@ -1,53 +1,43 @@
-# Copyright (c) 2019, Plume Design Inc. All rights reserved.
-# 
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#    1. Redistributions of source code must retain the above copyright
-#       notice, this list of conditions and the following disclaimer.
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#    3. Neither the name of the Plume Design Inc. nor the
-#       names of its contributors may be used to endorse or promote products
-#       derived from this software without specific prior written permission.
-# 
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-# DISCLAIMED. IN NO EVENT SHALL Plume Design Inc. BE LIABLE FOR ANY
-# DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-# LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
-# ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 ifeq ($(TARGET),RDKB)
 
-# TODO: Set correct vendor name
-VENDOR = template
-
-BACKHAUL_SSID = "we.piranha"
-
-CONTROLLER_PROTO = ssl
-CONTROLLER_PORT = 443
-CONTROLLER_HOST = "wildfire.plume.tech"
+# To customize: put actual vendor name here
+VENDOR = turris
 
 VERSION_NO_BUILDNUM = 1
 VERSION_NO_SHA1 = 1
 VERSION_NO_PROFILE = 1
 
-# TODO: Set correct machine (it should equal to MACHINE variable from your Yocto build)
-ifeq ($(RDK_MACHINE),template_machine)
+# To customize: This vendor layer supports Turris Omnia as a residential / business gateway
+# and Turris Omnia as Extender/GW. Put your machine name here.
+ifeq ($(RDK_MACHINE),$(filter $(RDK_MACHINE),turris turris-extender turris-bci turris_5.10))
 
-# TODO: Set correct OEM and model names
-RDK_OEM = template_oem
-RDK_MODEL = template_model
+# To customize: put OEM and MODEL names here
+RDK_OEM = turris
+RDK_MODEL = omnia
 
-KCONFIG_TARGET ?= vendor/$(VENDOR)/kconfig/TEMPLATE
+SERVICE_PROVIDERS = ALL
 
-# TODO: Specify additional CFLAGS if needed
-#RDK_CFLAGS  +=
+# To customize: put image deployment profile name here
+export IMAGE_DEPLOYMENT_PROFILE = dev-academy
+
+# To customize: extender targets (e.g. turris-extender) use a different configuration
+ifeq ($(RDK_MACHINE), turris-extender)
+KCONFIG_TARGET ?= vendor/$(VENDOR)/kconfig/RDK_EXTENDER
+RDK_CFLAGS  += -DTURRIS_POD
+else
+KCONFIG_TARGET ?= vendor/$(VENDOR)/kconfig/RDK
+endif
+
+# To customize: put any vendor-specific C flags here
+RDK_CFLAGS += -D_PLATFORM_TURRIS_
+
+# The following flag is NOT obligatory for non-ARMv7 based platforms.
+# It is added specifically for the Turris toolchain, to avoid wrong symbol
+# relocation in case of empty extern C arrays (e.g. target_managers_config)
+# which apparently are not handled correctly by ARMv7 based Turris' toolchain.
+# Add it only if you know what you are doing (e.g. expecting OpenSync library
+# to be dynamically loaded, which is not a default case).
+RDK_CFLAGS += -fPIC
 
 else
 $(error Unsupported RDK_MACHINE ($(RDK_MACHINE)).)
