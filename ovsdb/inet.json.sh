@@ -50,7 +50,7 @@ cat << EOF
         "op":"insert",
         "table":"Wifi_Inet_Config",
         "row": {
-            "if_name": "$CONFIG_RDK_BHAUL_24_IFNAME",
+            "if_name": "$CONFIG_RDK_BHAUL_AP_24_IFNAME",
             "if_type": "vif",
             "enabled": false,
             "dhcpd": ["map", [["start", "169.254.0.5"], ["stop", "169.254.0.253"]]]
@@ -60,7 +60,7 @@ cat << EOF
         "op":"insert",
         "table":"Wifi_Inet_Config",
         "row": {
-            "if_name": "$CONFIG_RDK_BHAUL_50_IFNAME",
+            "if_name": "$CONFIG_RDK_BHAUL_AP_50_IFNAME",
             "if_type": "vif",
             "enabled": false,
             "dhcpd": ["map", [["start", "169.254.1.5"], ["stop", "169.254.1.253"]]]
