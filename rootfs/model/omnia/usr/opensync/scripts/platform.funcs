@@ -3,6 +3,21 @@ platform_prereq_check() {
     return 0
 }
 
+wait_wifi_enabled() {
+    iter=0
+    while [[ true ]]; do
+        hostapd_cli -i wifi0 status | grep "state=ENABLED" > /dev/null; r1=$?
+        hostapd_cli -i wifi1 status | grep "state=ENABLED" > /dev/null; r2=$?
+        if [[ $r1 -eq 0 && $r2 -eq 0 || $iter -ge 5 ]]; then
+            break
+        fi
+
+        (( iter+=1 ))
+        echo "Wait for WiFi (step $iter ($r1,$r2))"
+        sleep 1
+    done
+}
+
 platform_start() {
     # Called just before starting managers
     device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
@@ -12,17 +27,28 @@ platform_start() {
         hostapd_cli -i wifi0 enable
         hostapd_cli -i wifi1 disable
         hostapd_cli -i wifi1 enable
+        if [ -f /nvram/debugnet_enable ]; then
+            ip link add link erouter0 name erouter0.4 type vlan id 4
+            udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i erouter0.4 -C -o -O subnet
+            cp /usr/opensync/scripts/enable_ssh.sh /tmp/mac_filter.sh
+            firewall
+        fi
+
+        wait_wifi_enabled
+
         return 0
     fi
 
     touch /etc/device.properties
+    touch /tmp/resolv.conf
+    ln -sf /tmp/resolv.conf /etc/resolv.conf
 
     # === Start Network interfaces ===
 
     ovs-vsctl add-br br-wan -- set bridge br-wan other-config:hwaddr=\"$(cat /sys/class/net/eth2/address)\"
     ifconfig eth2 up
     ip link add link eth2 name eth2.4 type vlan id 4
-    ifconfig eth2.4 up
+    udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i eth2.4 -C -o -O subnet
 
     # == LAN ==
     if [ $device_type == "broadband" ]; then
@@ -113,6 +139,10 @@ platform_stop() {
         # backhaul ap should be disabled when OpenSync is not running
         hostapd_cli -i wifi2 disable
         hostapd_cli -i wifi3 disable
+
+        if [ -f /nvram/debugnet_enable ]; then
+            pkill -f "udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i erouter0.4 -C -o -O subnet"
+        fi
 
         return 0
     fi
