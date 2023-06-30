@@ -22,14 +22,16 @@ platform_start() {
     # Called just before starting managers
     device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
     if [ $device_type == "broadband" ]; then
-        /usr/opensync/scripts/br-swap.sh ovs
+        if [ "$CONFIG_TARGET_USE_NATIVE_BRIDGE" != 'y' ]; then
+            /usr/opensync/scripts/br-swap.sh ovs
+        fi
         hostapd_cli -i wifi0 disable
         hostapd_cli -i wifi0 enable
         hostapd_cli -i wifi1 disable
         hostapd_cli -i wifi1 enable
         if [ -f /nvram/debugnet_enable ]; then
             ip link add link erouter0 name erouter0.4 type vlan id 4
-            udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i erouter0.4 -C -o -O subnet
+            udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i erouter0.4 -C -o -O subnet -b
             cp /usr/opensync/scripts/enable_ssh.sh /tmp/mac_filter.sh
             firewall
         fi
@@ -47,8 +49,10 @@ platform_start() {
 
     ovs-vsctl add-br br-wan -- set bridge br-wan other-config:hwaddr=\"$(cat /sys/class/net/eth2/address)\"
     ifconfig eth2 up
-    ip link add link eth2 name eth2.4 type vlan id 4
-    udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i eth2.4 -C -o -O subnet
+    if [ -f /nvram/debugnet_enable ]; then
+        ip link add link eth2 name eth2.4 type vlan id 4
+        udhcpc -s /usr/opensync/scripts/udhcpc.debugnet.sh -S -i eth2.4 -C -o -O subnet -b
+    fi
 
     # == LAN ==
     if [ $device_type == "broadband" ]; then
@@ -56,6 +60,7 @@ platform_start() {
     else
         ovs-vsctl add-br brlan0 -- set bridge brlan0 other-config:hwaddr=\"$(cat /sys/class/net/eth1/address)\"
     fi
+
     ovs-vsctl add-port brlan0 lan0
     ovs-vsctl add-port brlan0 lan1
     ovs-vsctl add-port brlan0 lan2
@@ -129,7 +134,9 @@ platform_stop() {
     # Called after stopping managers
     device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
     if [ $device_type == "broadband" ]; then
-        /usr/opensync/scripts/br-swap.sh native
+        if [ "$CONFIG_TARGET_USE_NATIVE_BRIDGE" != 'y' ]; then
+            /usr/opensync/scripts/br-swap.sh native
+        fi
 
         hostapd_cli -i wifi0 disable
         hostapd_cli -i wifi0 enable
