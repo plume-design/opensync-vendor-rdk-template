@@ -20,7 +20,7 @@ wait_wifi_enabled() {
 
 platform_start() {
     # Called just before starting managers
-    device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
+    device_type=`cat /etc/device.properties | grep DEVICE_TYPE | cut -d = -f 2`
     if [ $device_type == "broadband" ]; then
         if [ "$CONFIG_TARGET_USE_NATIVE_BRIDGE" != 'y' ]; then
             /usr/opensync/scripts/br-swap.sh ovs
@@ -132,7 +132,7 @@ platform_start() {
 
 platform_stop() {
     # Called after stopping managers
-    device_type=`cat /version.txt | grep imagename | cut -d':' -f2 | cut -d'-' -f3`
+    device_type=`cat /etc/device.properties | grep DEVICE_TYPE | cut -d = -f 2`
     if [ $device_type == "broadband" ]; then
         if [ "$CONFIG_TARGET_USE_NATIVE_BRIDGE" != 'y' ]; then
             /usr/opensync/scripts/br-swap.sh native

@@ -8,10 +8,6 @@ OS_TARGETS += $(RDK_TARGETS)
 # To customize: put actual vendor name here
 VENDOR = turris
 
-VERSION_NO_BUILDNUM = 1
-VERSION_NO_SHA1 = 1
-VERSION_NO_PROFILE = 1
-
 # To customize: put OEM and MODEL names here
 RDK_OEM = turris
 RDK_MODEL = omnia
